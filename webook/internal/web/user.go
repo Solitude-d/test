@@ -5,7 +5,6 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 	"test/webook/internal/domain"
 	"test/webook/internal/service"
 	"time"
@@ -76,13 +75,8 @@ func (u *UserHandler) SignUp(c *gin.Context) {
 }
 
 func (u *UserHandler) Profile(c *gin.Context) {
-	str := c.Query("ID")
-	if len(str) == 0 {
-		c.String(http.StatusOK, "无法获取与空用户信息")
-		return
-	}
-	id, _ := strconv.ParseInt(str, 10, 64)
-
+	sess := sessions.Default(c)
+	id := sess.Get("userId").(int64)
 	user, err := u.svc.Profile(c, id)
 	if err != nil {
 		c.String(http.StatusOK, "系统异常")
