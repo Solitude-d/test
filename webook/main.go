@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -41,8 +41,8 @@ func initWebServer() *gin.Engine {
 	server.Use(cors.New(cors.Config{
 		//AllowOrigins: []string{"localhost:3000"},
 		//AllowMethods:     []string{"PUT", "PATCH"},
-		AllowHeaders: []string{"authorization", "content-type"},
-		//ExposeHeaders:    []string{"Content-Length"},
+		AllowHeaders:     []string{"authorization", "content-type"},
+		ExposeHeaders:    []string{"x-jwt-token"},
 		AllowCredentials: true,
 		AllowOriginFunc: func(origin string) bool {
 			//如果origin 包含 http://localhost 则接收请求
@@ -55,12 +55,20 @@ func initWebServer() *gin.Engine {
 	}))
 
 	//为服务添加session
-	store := cookie.NewStore([]byte("secret"))
+	//store := cookie.NewStore([]byte("secret"))
+
+	//第一个参数 最大空闲连接数量
+	store, err := redis.NewStore(16, "tcp", "localhost:6379",
+		"", []byte("xHd&^OrleeXM@Yq40gfww%8S%eND1*md"), []byte("O$$f20qm05iP1tcYqT1$pcB15v3L@4Iv"))
+	if err != nil {
+		panic(err)
+	}
 	server.Use(sessions.Sessions("webookses", store))
 
 	server.Use(middleware.NewLoginMiddlewareBuilder().
 		IgnorePaths("/users/login", "/users/signup").Builder())
 
+	server.Use(middleware.NewLoginJWTMiddlewareBuilder().Builder())
 	return server
 }
 

@@ -4,6 +4,7 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"test/webook/internal/domain"
 	"test/webook/internal/service"
@@ -35,7 +36,9 @@ func (u *UserHandler) UserRouteRegister(server *gin.Engine) {
 	ug := server.Group("/users")
 	ug.POST("/signup", u.SignUp)
 	ug.GET("/profile", u.Profile)
+	ug.GET("/profilejwt", u.ProfileJWT)
 	ug.POST("/login", u.Login)
+	ug.POST("/loginjwt", u.LoginJWT)
 	ug.POST("/edit", u.Edit)
 }
 
@@ -85,6 +88,25 @@ func (u *UserHandler) Profile(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
+func (u *UserHandler) ProfileJWT(c *gin.Context) {
+	cc, ok := c.Get("claim")
+	if !ok {
+		c.String(http.StatusOK, "系统异常")
+		return
+	}
+	claims, ok := cc.(*UserClaim)
+	if !ok {
+		c.String(http.StatusOK, "系统异常")
+		return
+	}
+	user, err := u.svc.Profile(c, claims.Uid)
+	if err != nil {
+		c.String(http.StatusOK, "系统异常")
+		return
+	}
+	c.JSON(http.StatusOK, user)
+}
+
 func (u *UserHandler) Login(c *gin.Context) {
 	type login struct {
 		Email    string `json:"email"`
@@ -107,9 +129,62 @@ func (u *UserHandler) Login(c *gin.Context) {
 		return
 	}
 	sess := sessions.Default(c)
+	sess.Options(sessions.Options{
+		//Secure: true,
+		//HttpOnly: true,
+		MaxAge: 30 * 60,
+	})
 	sess.Set("userId", user.Id)
 	sess.Save()
 	c.String(http.StatusOK, "道爷上线辣")
+	return
+}
+
+func (u *UserHandler) LoginJWT(c *gin.Context) {
+	type login struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req login
+
+	if err := c.Bind(&req); err != nil {
+		c.String(http.StatusOK, "入参错误")
+		return
+	}
+
+	user, err := u.svc.Login(c, req.Email, req.Password)
+	if err == service.ErrInvalidUserOrPassword {
+		c.String(http.StatusOK, "用户名或密码错误")
+		return
+	}
+	if err != nil {
+		c.String(http.StatusOK, "系统错误")
+		return
+	}
+	claims := UserClaim{
+		Uid: user.Id,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	tokenStr, err := token.SignedString([]byte("xHd&^OrleeXM@Yq40gfww%8S%eND1*md"))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "系统错误")
+		return
+	}
+	c.Header("x-jwt-token", tokenStr)
+	c.String(http.StatusOK, "道爷上线辣")
+	return
+}
+
+func (u *UserHandler) LogOut(c *gin.Context) {
+	sess := sessions.Default(c)
+	sess.Options(sessions.Options{
+		MaxAge: -1,
+	})
+	sess.Save()
+	c.String(http.StatusOK, "道爷走辣")
 	return
 }
 
@@ -152,4 +227,9 @@ func (u *UserHandler) Edit(c *gin.Context) {
 	}
 	c.String(http.StatusOK, "个人信息修改成功")
 	return
+}
+
+type UserClaim struct {
+	jwt.RegisteredClaims
+	Uid int64
 }
