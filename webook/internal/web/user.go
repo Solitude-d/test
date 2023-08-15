@@ -162,7 +162,8 @@ func (u *UserHandler) LoginJWT(c *gin.Context) {
 		return
 	}
 	claims := UserClaim{
-		Uid: user.Id,
+		Uid:       user.Id,
+		UserAgent: c.Request.UserAgent(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
 		},
@@ -231,5 +232,6 @@ func (u *UserHandler) Edit(c *gin.Context) {
 
 type UserClaim struct {
 	jwt.RegisteredClaims
-	Uid int64
+	Uid       int64
+	UserAgent string
 }
