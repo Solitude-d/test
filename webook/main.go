@@ -1,21 +1,23 @@
 package main
 
 import (
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/sessions"
-	sessRedis "github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	redis "github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"strings"
+
+	"test/webook/config"
 	"test/webook/internal/repository"
 	"test/webook/internal/repository/dao"
 	"test/webook/internal/service"
 	user2 "test/webook/internal/web"
 	"test/webook/internal/web/middleware"
 	"test/webook/pkg/ginx/middlewares/ratelimit"
-	"time"
 )
 
 func main() {
@@ -23,11 +25,17 @@ func main() {
 	server := initWebServer()
 	user := initUser(db)
 	user.UserRouteRegister(server)
-	server.Run(":8080") // 监听并在 :8080 上启动服务
+	//server := gin.Default()
+	server.GET("/hello", func(ctx *gin.Context) {
+		ctx.String(http.StatusOK, "hello mac")
+	})
+	//server.Run(":8080") // 监听并在 :8080 上启动服务
+	server.Run(":8081") // 监听并在 :8080 上启动服务
 }
 
 func initDB() *gorm.DB {
-	db, err := gorm.Open(mysql.Open("root:root@tcp(localhost:13316)/webook"))
+	//db, err := gorm.Open(mysql.Open("root:root@tcp(webook-mysql:3009)/webook"))
+	db, err := gorm.Open(mysql.Open(config.Config.DB.DSN))
 	if err != nil {
 		panic(err)
 	}
@@ -41,8 +49,14 @@ func initDB() *gorm.DB {
 func initWebServer() *gin.Engine {
 	server := gin.Default()
 
+	//cmd := redis.NewClient(&redis.Options{
+	//	Addr:     "webook-redis:16379",
+	//	Password: "",
+	//	DB:       1,
+	//})
+
 	cmd := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     config.Config.Redis.Addr,
 		Password: "",
 		DB:       1,
 	})
@@ -61,7 +75,7 @@ func initWebServer() *gin.Engine {
 			if strings.HasPrefix(origin, "http://localhost") {
 				return true
 			}
-			return strings.Contains(origin, "公司域名")
+			return strings.Contains(origin, "webook.com")
 		},
 		MaxAge: 12 * time.Hour,
 	}))
@@ -70,17 +84,18 @@ func initWebServer() *gin.Engine {
 	//store := cookie.NewStore([]byte("secret"))
 
 	//第一个参数 最大空闲连接数量
-	store, err := sessRedis.NewStore(16, "tcp", "localhost:6379",
-		"", []byte("xHd&^OrleeXM@Yq40gfww%8S%eND1*md"), []byte("O$$f20qm05iP1tcYqT1$pcB15v3L@4Iv"))
-	if err != nil {
-		panic(err)
-	}
-	server.Use(sessions.Sessions("webookses", store))
+	//store, err := sessRedis.NewStore(16, "tcp", "localhost:6379",
+	//	"", []byte("xHd&^OrleeXM@Yq40gfww%8S%eND1*md"), []byte("O$$f20qm05iP1tcYqT1$pcB15v3L@4Iv"))
+	//if err != nil {
+	//	panic(err)
+	//}
+	//server.Use(sessions.Sessions("webookses", store))
 
-	server.Use(middleware.NewLoginMiddlewareBuilder().
-		IgnorePaths("/users/login", "/users/signup").Builder())
+	//server.Use(middleware.NewLoginMiddlewareBuilder().
+	//	IgnorePaths("/users/login", "/users/signup").Builder())
 
-	server.Use(middleware.NewLoginJWTMiddlewareBuilder().Builder())
+	server.Use(middleware.NewLoginJWTMiddlewareBuilder().
+		IgnorePaths("/hello", "/users/login", "/users/loginjwt", "/users/signup").Builder())
 	return server
 }
 

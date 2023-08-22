@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: webook
+spec:
+  type: LoadBalancer
+  selector:
+    app: webook
+  ports:
+    - protocol: TCP
+      #外部访问的端口
+      port: 80
+      #必须跟 deployment配置的端口(containerPort)保持一致
+      targetPort: 8081
+
+  

@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webook
+  labels:
+    app: webook
+    #specification
+spec:
+  #副本数量 3个POD   ->   改2个
+  replicas: 2
+  #筛选器 选择标签名字叫 webook的POD
+  selector:
+    matchLabels:
+      app: webook
+  #描述的是我的POD是什么样的 POD的规格说明
+  template:
+    metadata:
+      name: webook
+      labels:
+        app: webook
+  #POD具体信息
+    spec:
+      containers:
+        - name: webook
+          #这个是容器内要使用的镜像
+          image: d17/webook:v0.0.1
+          ports:
+            #整个服务向外暴露的端口是8080 跟main函数内配置有关
+            - containerPort: 8081
+      
