@@ -2,12 +2,14 @@ package middleware
 
 import (
 	"encoding/gob"
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"strings"
-	"test/webook/internal/web"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+
+	"test/webook/internal/web"
 )
 
 type LoginJWTMiddlewareBuilder struct {
@@ -16,6 +18,13 @@ type LoginJWTMiddlewareBuilder struct {
 
 func NewLoginJWTMiddlewareBuilder() *LoginJWTMiddlewareBuilder {
 	return &LoginJWTMiddlewareBuilder{}
+}
+
+func (l *LoginJWTMiddlewareBuilder) IgnorePaths(path ...string) *LoginJWTMiddlewareBuilder {
+	for _, v := range path {
+		l.paths = append(l.paths, v)
+	}
+	return l
 }
 
 func (l *LoginJWTMiddlewareBuilder) Builder() gin.HandlerFunc {

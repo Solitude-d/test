@@ -6,3 +6,9 @@
 ![图片名称](webook/image/nameerr.jpg)
 4.获取用户信息
 ![图片名称](webook/image/profile.jpg)  
+5.kubectl service
+![图片名称](webook/image/kubectlservice.png)
+6.kubectl pods
+![图片名称](webook/image/pods.png)
+7.webook hello
+![图片名称](webook/image/webook.png) 

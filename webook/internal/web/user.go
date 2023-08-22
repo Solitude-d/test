@@ -1,14 +1,16 @@
 package web
 
 import (
+	"net/http"
+	"time"
+
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"net/http"
+
 	"test/webook/internal/domain"
 	"test/webook/internal/service"
-	"time"
 )
 
 type UserHandler struct {
@@ -151,7 +153,6 @@ func (u *UserHandler) LoginJWT(c *gin.Context) {
 		c.String(http.StatusOK, "入参错误")
 		return
 	}
-
 	user, err := u.svc.Login(c, req.Email, req.Password)
 	if err == service.ErrInvalidUserOrPassword {
 		c.String(http.StatusOK, "用户名或密码错误")
