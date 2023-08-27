@@ -37,10 +37,8 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 func (u *UserHandler) UserRouteRegister(server *gin.Engine) {
 	ug := server.Group("/users")
 	ug.POST("/signup", u.SignUp)
-	ug.GET("/profile", u.Profile)
-	ug.GET("/profilejwt", u.ProfileJWT)
-	ug.POST("/login", u.Login)
-	ug.POST("/loginjwt", u.LoginJWT)
+	ug.GET("/profile", u.ProfileJWT)
+	ug.POST("/login", u.LoginJWT)
 	ug.POST("/edit", u.Edit)
 }
 
@@ -166,7 +164,7 @@ func (u *UserHandler) LoginJWT(c *gin.Context) {
 		Uid:       user.Id,
 		UserAgent: c.Request.UserAgent(),
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)

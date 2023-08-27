@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+
 	"test/webook/internal/domain"
+	"test/webook/internal/repository/cache"
 	"test/webook/internal/repository/dao"
 )
 
@@ -12,12 +14,14 @@ var (
 )
 
 type UserRepository struct {
-	u *dao.UserDao
+	u     *dao.UserDao
+	cache *cache.UserCache
 }
 
-func NewUserRepository(u *dao.UserDao) *UserRepository {
+func NewUserRepository(u *dao.UserDao, c *cache.UserCache) *UserRepository {
 	return &UserRepository{
-		u: u,
+		u:     u,
+		cache: c,
 	}
 }
 
@@ -50,15 +54,21 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (domain.
 }
 
 func (r *UserRepository) FindByID(ctx context.Context, id int64) (domain.User, error) {
-	u, err := r.u.FindByID(ctx, id)
+	u, err := r.cache.Get(ctx, id)
+	if err == nil {
+		return u, nil
+	}
+	ue, err := r.u.FindByID(ctx, id)
 	if err != nil {
 		return domain.User{}, err
 	}
-	return domain.User{
-		Id:       u.Id,
-		NickName: u.NickName,
-		Birth:    u.Birth,
-		Synopsis: u.Synopsis,
-		Email:    u.Email,
-	}, nil
+	u = domain.User{
+		Id:       ue.Id,
+		NickName: ue.NickName,
+		Birth:    ue.Birth,
+		Synopsis: ue.Synopsis,
+		Email:    ue.Email,
+	}
+	err = r.cache.Set(ctx, u)
+	return u, err
 }

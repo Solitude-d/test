@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	redis "github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
@@ -17,7 +16,6 @@ import (
 	"test/webook/internal/service"
 	user2 "test/webook/internal/web"
 	"test/webook/internal/web/middleware"
-	"test/webook/pkg/ginx/middlewares/ratelimit"
 )
 
 func main() {
@@ -55,14 +53,14 @@ func initWebServer() *gin.Engine {
 	//	DB:       1,
 	//})
 
-	cmd := redis.NewClient(&redis.Options{
-		Addr:     config.Config.Redis.Addr,
-		Password: "",
-		DB:       1,
-	})
+	//cmd := redis.NewClient(&redis.Options{
+	//	Addr:     config.Config.Redis.Addr,
+	//	Password: "",
+	//	DB:       1,
+	//})
 
 	//一秒钟 100个请求
-	server.Use(ratelimit.NewBuilder(cmd, time.Second, 100).Build())
+	//server.Use(ratelimit.NewBuilder(cmd, time.Second, 100).Build())
 
 	server.Use(cors.New(cors.Config{
 		//AllowOrigins: []string{"localhost:3000"},
@@ -95,7 +93,7 @@ func initWebServer() *gin.Engine {
 	//	IgnorePaths("/users/login", "/users/signup").Builder())
 
 	server.Use(middleware.NewLoginJWTMiddlewareBuilder().
-		IgnorePaths("/hello", "/users/login", "/users/loginjwt", "/users/signup").Builder())
+		IgnorePaths("/hello", "/users/login", "/users/signup").Builder())
 	return server
 }
 
