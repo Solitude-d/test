@@ -7,13 +7,16 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
 	"test/webook/config"
 	"test/webook/internal/repository"
+	"test/webook/internal/repository/cache"
 	"test/webook/internal/repository/dao"
 	"test/webook/internal/service"
+	"test/webook/internal/service/sms/memory"
 	user2 "test/webook/internal/web"
 	"test/webook/internal/web/middleware"
 )
@@ -21,7 +24,9 @@ import (
 func main() {
 	db := initDB()
 	server := initWebServer()
-	user := initUser(db)
+
+	rdb := initRedis()
+	user := initUser(db, rdb)
 	user.UserRouteRegister(server)
 	//server := gin.Default()
 	server.GET("/hello", func(ctx *gin.Context) {
@@ -42,6 +47,13 @@ func initDB() *gorm.DB {
 		panic(err)
 	}
 	return db
+}
+
+func initRedis() redis.Cmdable {
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: config.Config.Redis.Addr,
+	})
+	return redisClient
 }
 
 func initWebServer() *gin.Engine {
@@ -93,14 +105,21 @@ func initWebServer() *gin.Engine {
 	//	IgnorePaths("/users/login", "/users/signup").Builder())
 
 	server.Use(middleware.NewLoginJWTMiddlewareBuilder().
-		IgnorePaths("/hello", "/users/login", "/users/signup").Builder())
+		IgnorePaths("/hello", "/users/login", "/users/signup",
+			"users/login_sms/code/send", "users/login_sms").Builder())
 	return server
 }
 
-func initUser(db *gorm.DB) *user2.UserHandler {
+func initUser(db *gorm.DB, rdb redis.Cmdable) *user2.UserHandler {
 	udao := dao.NewUserDao(db)
-	repo := repository.NewUserRepository(udao)
+	ud := cache.NewUserCache(rdb)
+	repo := repository.NewUserRepository(udao, ud)
 	svc := service.NewUserService(repo)
-	user := user2.NewUserHandler(svc)
+	codeCache := cache.NewCodeCache(rdb)
+	codeRepo := repository.NewCodeRepository(codeCache)
+	//smsSvc := tencent.NewService()
+	smsSvc := memory.NewService()
+	codeSvc := service.NewCodeService(codeRepo, smsSvc)
+	user := user2.NewUserHandler(svc, codeSvc)
 	return user
 }
