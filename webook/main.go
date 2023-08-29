@@ -22,18 +22,20 @@ import (
 )
 
 func main() {
-	db := initDB()
-	server := initWebServer()
-
-	rdb := initRedis()
-	user := initUser(db, rdb)
-	user.UserRouteRegister(server)
+	//db := initDB()
+	//server := initWebServer()
+	//
+	//rdb := initRedis()
+	//user := initUser(db, rdb)
+	//user.UserRouteRegister(server)
 	//server := gin.Default()
+
+	server := InitWebServer()
 	server.GET("/hello", func(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "hello mac")
 	})
 	//server.Run(":8080") // 监听并在 :8080 上启动服务
-	server.Run(":8081") // 监听并在 :8080 上启动服务
+	server.Run(":8081") // 监听并在 :8081 上启动服务
 }
 
 func initDB() *gorm.DB {
