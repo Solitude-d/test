@@ -36,5 +36,5 @@ func InitWebServer() *gin.Engine {
 		ioc.InitWebServer,
 		ioc.InitMiddlewares,
 	)
-	return new(gin.Engine)
+	return gin.Default()
 }
