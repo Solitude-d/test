@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -139,7 +140,6 @@ func (u *UserHandler) SignUp(c *gin.Context) {
 	}
 	var req sign
 	if err := c.Bind(&req); err != nil {
-		c.String(http.StatusOK, "入参错误")
 		return
 	}
 	isEmail, err := u.emailRegexExp.MatchString(req.Email)
@@ -151,11 +151,15 @@ func (u *UserHandler) SignUp(c *gin.Context) {
 		c.String(http.StatusOK, "邮箱格式不对")
 		return
 	}
+	if req.Password != req.ConfirmPassword {
+		c.String(http.StatusOK, "两次密码输入不一致")
+		return
+	}
 	err = u.svc.SignUp(c, domain.User{
 		Email:    req.Email,
 		Password: req.Password,
 	})
-	if err == service.ErrUserDuplicateEmail {
+	if errors.Is(err, service.ErrUserDuplicateEmail) {
 		c.String(http.StatusOK, "邮箱冲突")
 		return
 	}
