@@ -258,24 +258,24 @@ func (u *UserHandler) LoginJWT(c *gin.Context) {
 			Code: 5,
 			Msg:  "系统错误",
 		})
+		return
 	}
 	c.String(http.StatusOK, "道爷上线辣")
 }
 
-func (u *UserHandler) setJWTToken(c *gin.Context, id int64) error {
-	claims := UserClaim{
-		Uid:       id,
-		UserAgent: c.Request.UserAgent(),
+func (c *UserHandler) setJWTToken(ctx *gin.Context, uid int64) error {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, UserClaim{
+		Uid:       uid,
+		UserAgent: ctx.GetHeader("User-Agent"),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
 		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
-	tokenStr, err := token.SignedString([]byte("xHd&^OrleeXM@Yq40gfww%8S%eND1*md"))
+	})
+	tokenStr, err := token.SignedString(JWTKey)
 	if err != nil {
 		return err
 	}
-	c.Header("x-jwt-token", tokenStr)
+	ctx.Header("x-jwt-token", tokenStr)
 	return nil
 }
 
@@ -328,10 +328,4 @@ func (u *UserHandler) Edit(c *gin.Context) {
 	}
 	c.String(http.StatusOK, "个人信息修改成功")
 	return
-}
-
-type UserClaim struct {
-	jwt.RegisteredClaims
-	Uid       int64
-	UserAgent string
 }

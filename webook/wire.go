@@ -24,7 +24,7 @@ func InitWebServer() *gin.Engine {
 		cache.NewUserCache,
 		ioc.InitCodeCache,
 
-		ioc.InitBigCache,
+		//ioc.InitBigCache,
 
 		repository.NewUserRepository,
 		repository.NewCodeRepository,

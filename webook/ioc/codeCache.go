@@ -1,15 +1,15 @@
 package ioc
 
 import (
-	"github.com/allegro/bigcache/v3"
+	"github.com/redis/go-redis/v9"
 
 	"test/webook/internal/repository/cache"
 )
 
-//func InitCodeCache(client redis.Cmdable) cache.CodeCache {
-//	return cache.NewRedisCodeCache(client)
-//}
-
-func InitCodeCache(c *bigcache.BigCache) cache.CodeCache {
-	return cache.NewBigCodeCache(c)
+func InitCodeCache(client redis.Cmdable) cache.CodeCache {
+	return cache.NewRedisCodeCache(client)
 }
+
+//func InitCodeCache(c *bigcache.BigCache) cache.CodeCache {
+//	return cache.NewBigCodeCache(c)
+//}
