@@ -10,6 +10,9 @@ type User struct {
 	Birth    string
 	Synopsis string
 
+	OpenID  string
+	UnionID string
+
 	Ctime int64
 	Utime int64
 }

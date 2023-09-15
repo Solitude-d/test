@@ -134,7 +134,7 @@ func TestUserHandler(t *testing.T) {
 	}
 }
 
-func TestUserHandler_SendLoginSMSCode(t *testing.T) {
+func TestUserHandler_LoginSMS(t *testing.T) {
 	testCases := []struct {
 		name     string
 		mock     func(ctrl *gomock.Controller) (service.UserService, service.CodeService)
@@ -189,6 +189,7 @@ func TestUserHandler_SendLoginSMSCode(t *testing.T) {
 					"inputCode":"123456"
 						}`,
 			mock: func(ctrl *gomock.Controller) (service.UserService, service.CodeService) {
+
 				uSvc := svcmocks.NewMockUserService(ctrl)
 				uSvc.EXPECT().FindOrCreate(gomock.Any(), "15381818181").
 					Return(domain.User{
@@ -215,12 +216,9 @@ func TestUserHandler_SendLoginSMSCode(t *testing.T) {
 			uSvc, cSvc := tc.mock(ctrl)
 			h := NewUserHandler(uSvc, cSvc)
 			h.UserRouteRegister(svc)
-
 			req, err := http.NewRequest(http.MethodPost, "/users/login_sms",
 				bytes.NewBuffer([]byte(tc.reqBody)))
-
 			require.NoError(t, err)
-
 			req.Header.Set("Content-Type", "application/json")
 			resp := httptest.NewRecorder()
 			svc.ServeHTTP(resp, req)

@@ -3,21 +3,24 @@ package middleware
 import (
 	"encoding/gob"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 
-	"test/webook/internal/web"
+	ijwt "test/webook/internal/web/jwt"
 )
 
 type LoginJWTMiddlewareBuilder struct {
 	paths []string
+	ijwt.Handler
 }
 
-func NewLoginJWTMiddlewareBuilder() *LoginJWTMiddlewareBuilder {
-	return &LoginJWTMiddlewareBuilder{}
+func NewLoginJWTMiddlewareBuilder(jwtHdl ijwt.Handler) *LoginJWTMiddlewareBuilder {
+	return &LoginJWTMiddlewareBuilder{
+		Handler: jwtHdl,
+	}
+
 }
 
 func (l *LoginJWTMiddlewareBuilder) IgnorePaths(path ...string) *LoginJWTMiddlewareBuilder {
@@ -35,18 +38,19 @@ func (l *LoginJWTMiddlewareBuilder) Builder() gin.HandlerFunc {
 				c.Next()
 			}
 		}
-		tokenHeader := c.GetHeader("Authorization")
-		if tokenHeader == "" {
-			c.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-		sess := strings.Split(tokenHeader, " ")
-		if len(sess) != 2 {
-			c.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-		tokenStr := sess[1]
-		claims := &web.UserClaim{}
+		//tokenHeader := c.GetHeader("Authorization")
+		//if tokenHeader == "" {
+		//	c.AbortWithStatus(http.StatusUnauthorized)
+		//	return
+		//}
+		//sess := strings.Split(tokenHeader, " ")
+		//if len(sess) != 2 {
+		//	c.AbortWithStatus(http.StatusUnauthorized)
+		//	return
+		//}
+		//tokenStr := sess[1]
+		tokenStr := l.ExtractToken(c)
+		claims := &ijwt.UserClaim{}
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 			return []byte("xHd&^OrleeXM@Yq40gfww%8S%eND1*md"), nil
 		})
@@ -65,15 +69,21 @@ func (l *LoginJWTMiddlewareBuilder) Builder() gin.HandlerFunc {
 			return
 		}
 
-		now := time.Now()
-		if claims.ExpiresAt.Sub(now) < time.Second*50 {
-			claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute))
-			tokenStr, err = token.SignedString([]byte("xHd&^OrleeXM@Yq40gfww%8S%eND1*md"))
-			if err != nil {
-				println(err)
-			}
-			c.Header("x-jwt-token", tokenStr)
+		err = l.CheckSession(c, claims.Ssid)
+		if err != nil {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
+		//使用长短token 不需要这个刷新机制
+		//now := time.Now()
+		//if claims.ExpiresAt.Sub(now) < time.Second*50 {
+		//	claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute))
+		//	tokenStr, err = token.SignedString([]byte("xHd&^OrleeXM@Yq40gfww%8S%eND1*md"))
+		//	if err != nil {
+		//		println(err)
+		//	}
+		//	c.Header("x-jwt-token", tokenStr)
+		//}
 		c.Set("claim", claims)
 	}
 }
