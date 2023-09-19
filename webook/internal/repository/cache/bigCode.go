@@ -12,6 +12,7 @@ import (
 
 type BigCodeCache struct {
 	cache *bigcache.BigCache
+	lock  sync.Mutex
 }
 
 func NewBigCodeCache(cache *bigcache.BigCache) CodeCache {
@@ -21,9 +22,8 @@ func NewBigCodeCache(cache *bigcache.BigCache) CodeCache {
 }
 
 func (b *BigCodeCache) Set(ctx context.Context, biz, phone, code string) error {
-	var mutex sync.Mutex
-	mutex.Lock()
-	defer mutex.Unlock()
+	b.lock.Lock()
+	defer b.lock.Unlock()
 	key := b.key(biz, phone)
 	cntKey := key + ":cnt"
 	refreshKey := key + ":fresh"
@@ -77,9 +77,8 @@ func (b *BigCodeCache) Set(ctx context.Context, biz, phone, code string) error {
 }
 
 func (b *BigCodeCache) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
-	var mutex sync.Mutex
-	mutex.Lock()
-	defer mutex.Unlock()
+	b.lock.Lock()
+	defer b.lock.Unlock()
 	key := b.key(biz, phone)
 	value, err := b.cache.Get(key)
 	if err != nil {

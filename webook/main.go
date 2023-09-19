@@ -1,9 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"net/http"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+	_ "github.com/spf13/viper/remote"
 )
 
 func main() {
@@ -14,13 +20,92 @@ func main() {
 	//user := initUser(db, rdb)
 	//user.UserRouteRegister(server)
 	//server := gin.Default()
-
+	//initViper()
+	//initViperV1()
+	initViperV2()
+	//initViperRemote()
 	server := InitWebServer()
 	server.GET("/hello", func(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "hello mac")
 	})
 	//server.Run(":8080") // 监听并在 :8080 上启动服务
 	server.Run(":8081") // 监听并在 :8081 上启动服务
+}
+
+func initViper() {
+	viper.SetDefault("db.mysql.dsn",
+		"root:root@tcp(localhost:13316)/webook")
+	viper.SetConfigName("dev")
+	viper.SetConfigType("yaml")
+	//当前工作目录下的 config 子目录
+	viper.AddConfigPath("./config")
+	//将配置加载到内存中
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(err)
+	}
+}
+
+// initViperRemote etcdctl --endpoints=127.0.0.1:12379 put /webook "$(<dev.yaml)"
+// etcdctl --endpoints=http://127.0.0.1:12379 get /webook
+func initViperRemote() {
+	viper.SetConfigType("yaml")
+	err := viper.AddRemoteProvider("etcd3",
+		"127.0.0.1:12379",
+		"/webook")
+	if err != nil {
+		panic(err)
+	}
+	err = viper.WatchRemoteConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	err = viper.ReadRemoteConfig()
+	if err != nil {
+		panic(err)
+	}
+}
+
+// initViperReader 一般用于开发调试
+func initViperReader() {
+	viper.SetConfigType("yaml")
+	cfg := `
+db.mysql:
+  dsn: "root:root@tcp(localhost:13316)/webook"
+redis:
+  addr: "localhost:6379"
+`
+	err := viper.ReadConfig(bytes.NewReader([]byte(cfg)))
+	if err != nil {
+		panic(err)
+	}
+}
+
+// initViperV2 启动时传入配置文件路径 没有则使用设置好的默认值    go run . --config=config/dev.yaml
+func initViperV2() {
+	cfile := pflag.String("config", "config/dev.yaml", "配置文件路径")
+	pflag.Parse()
+	viper.SetConfigFile(*cfile)
+	viper.WatchConfig()
+	viper.OnConfigChange(func(in fsnotify.Event) {
+		fmt.Println(in.Name, in.Op)
+	})
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func initViperV1() {
+	//默认值
+	//viper.SetDefault("db.mysql.dsn",
+	//	"root:root@tcp(localhost:13316)/webook")
+	viper.SetConfigFile("config/dev.yaml")
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(err)
+	}
 }
 
 //func initDB() *gorm.DB {
