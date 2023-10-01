@@ -8,6 +8,7 @@ import (
 
 	"test/webook/internal/domain"
 	"test/webook/internal/repository"
+	"test/webook/pkg/logger"
 )
 
 var (
@@ -26,11 +27,14 @@ type UserService interface {
 
 type userService struct {
 	repo repository.UserRepository
+	//logger *zap.Logger
+	logger logger.Logger
 }
 
-func NewUserService(repo repository.UserRepository) UserService {
+func NewUserService(repo repository.UserRepository, l logger.Logger) UserService {
 	return &userService{
-		repo: repo,
+		repo:   repo,
+		logger: l,
 	}
 }
 
@@ -81,6 +85,7 @@ func (svc *userService) FindOrCreate(ctx context.Context, phone string) (domain.
 		//nil  或者 不是没找到用户都会进来
 		return u, err
 	}
+	svc.logger.Info("用户未注册", logger.Strings("phone", phone))
 	//没找到则创建、然后再次查询返回user
 	u = domain.User{
 		Phone: phone,

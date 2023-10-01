@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -21,8 +22,8 @@ func main() {
 	//user.UserRouteRegister(server)
 	//server := gin.Default()
 	//initViper()
-	//initViperV1()
-	initViperV2()
+	initViperV1()
+	//initViperV2()
 	//initViperRemote()
 	server := InitWebServer()
 	server.GET("/hello", func(ctx *gin.Context) {
@@ -30,6 +31,16 @@ func main() {
 	})
 	//server.Run(":8080") // 监听并在 :8080 上启动服务
 	server.Run(":8081") // 监听并在 :8081 上启动服务
+}
+
+func initLogger() {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+	//不replace的话 使用zap.L().  无法打印出日志  直接用前面new出来的logger可以不需要replace
+	zap.ReplaceGlobals(logger)
+
 }
 
 func initViper() {
@@ -174,11 +185,11 @@ func initViperV1() {
 //	//server.Use(sessions.Sessions("webookses", store))
 //
 //	//server.Use(middleware.NewLoginMiddlewareBuilder().
-//	//	IgnorePaths("/users/login", "/users/signup").Builder())
+//	//	IgnorePaths("/users/login", "/users/signup").Build())
 //
 //	server.Use(middleware.NewLoginJWTMiddlewareBuilder().
 //		IgnorePaths("/hello", "/users/login", "/users/signup",
-//			"users/login_sms/code/send", "users/login_sms").Builder())
+//			"users/login_sms/code/send", "users/login_sms").Build())
 //	return server
 //}
 
