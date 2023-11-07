@@ -7,10 +7,12 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	article3 "test/webook/internal/events/article"
 	"test/webook/internal/repository"
+	article2 "test/webook/internal/repository/article"
 	"test/webook/internal/repository/cache"
 	"test/webook/internal/repository/dao"
+	"test/webook/internal/repository/dao/article"
 	"test/webook/internal/service"
 	"test/webook/internal/web"
 	"test/webook/internal/web/jwt"
@@ -23,7 +25,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitWebServer() *gin.Engine {
+func InitWebServer() *App {
 	cmdable := ioc.InitRedis()
 	handler := jwt.NewRedisJWTHandler(cmdable)
 	logger := ioc.InitLogger()
@@ -41,6 +43,22 @@ func InitWebServer() *gin.Engine {
 	wechatService := ioc.InitWechatService()
 	weChatHandlerConfig := ioc.NewWeChatHandlerConfig()
 	oAuth2WechatHandler := web.NewOAuth2WechatHandler(wechatService, userService, weChatHandlerConfig, handler)
-	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler)
-	return engine
+	articleDAO := article.NewGORMArticleDAO(db)
+	articleRepository := article2.NewArticleRepository(articleDAO, logger)
+	client := ioc.InitKafka()
+	syncProducer := ioc.NewSyncProducer(client)
+	producer := article3.NewKafkaProducer(syncProducer)
+	articleService := service.NewArticleService(articleRepository, logger, producer)
+	articleHandler := web.NewArticleHandler(articleService, logger)
+	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler, articleHandler)
+	interactiveDAO := dao.NewGORMInteractiveDAO(db)
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
+	interactiveReadEventConsumer := article3.NewInteractiveReadEventConsumer(client, logger, interactiveRepository)
+	v2 := ioc.NewConsumers(interactiveReadEventConsumer)
+	app := &App{
+		server:    engine,
+		consumers: v2,
+	}
+	return app
 }

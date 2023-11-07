@@ -114,7 +114,7 @@ func TestUserHandler(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			svc := gin.Default()
-			h := NewUserHandler(tc.mock(ctrl), nil)
+			h := NewUserHandler(tc.mock(ctrl), nil, nil, nil)
 			h.UserRouteRegister(svc)
 
 			req, err := http.NewRequest(http.MethodPost, "/users/signup",
@@ -214,7 +214,7 @@ func TestUserHandler_LoginSMS(t *testing.T) {
 			defer ctrl.Finish()
 			svc := gin.Default()
 			uSvc, cSvc := tc.mock(ctrl)
-			h := NewUserHandler(uSvc, cSvc)
+			h := NewUserHandler(uSvc, cSvc, nil, nil)
 			h.UserRouteRegister(svc)
 			req, err := http.NewRequest(http.MethodPost, "/users/login_sms",
 				bytes.NewBuffer([]byte(tc.reqBody)))
