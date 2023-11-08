@@ -19,12 +19,18 @@ type InteractiveRepository interface {
 	Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error)
 	Liked(ctx context.Context, biz string, bizId int64, uid int64) (bool, error)
 	Collected(ctx context.Context, biz string, bizId int64, uid int64) (bool, error)
+	IncrReadBatchCnt(ctx context.Context, ids []int64, bizs []string) error
 }
 
 type CachedReadCntRepository struct {
 	dao   dao.InteractiveDAO
 	cache cache.InteractiveCache
 	l     logger.Logger
+}
+
+func (c *CachedReadCntRepository) IncrReadBatchCnt(ctx context.Context, ids []int64, bizs []string) error {
+	//TODO 更新缓存
+	return c.dao.BatchIncrReadCnt(ctx, ids, bizs)
 }
 
 func (c *CachedReadCntRepository) Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error) {
